@@ -1,6 +1,6 @@
 console.log('[DevSoutinho] Flappy Bird');
 
-const sprites = new Image();
+const sprites = new Image(); // << look back to it
 sprites.src = './sprites.png';
 
 const canvas = document.querySelector('canvas');
@@ -16,7 +16,7 @@ const planoDeFundo = {
   x: 0,
   y: canvas.height - 204,
   desenha() {
-    contexto.fillStyle = '#70c5ce';
+    contexto.fillStyle = '#2e4482';
     contexto.fillRect(0,0, canvas.width, canvas.height)
 
     contexto.drawImage(
@@ -45,14 +45,14 @@ const chao = {
   altura: 112,
   x: 0,
   y: canvas.height - 112,
-  desenha() {
+  desenha() {    
     contexto.drawImage(
       sprites,
-      chao.spriteX, chao.spriteY,
+      chao.spriteX, chao.spriteY, // << sprites positions
       chao.largura, chao.altura,
       chao.x, chao.y,
       chao.largura, chao.altura,
-    );
+    );    
 
     contexto.drawImage(
       sprites,
@@ -71,6 +71,13 @@ const flappyBird = {
   altura: 24,
   x: 10,
   y: 50,
+  gravidade: 0.08,
+  velocidade: 0,
+  atualiza(){
+    flappyBird.velocidade = flappyBird.velocidade + flappyBird.gravidade;
+    flappyBird.y = flappyBird.y + flappyBird.velocidade;
+    console.log(flappyBird.velocidade);
+  },
   desenha() {
     contexto.drawImage(
       sprites,
@@ -82,14 +89,33 @@ const flappyBird = {
   }
 }
 
+var count = 0;
+function idleFlappyBird(){
+  if(count % 2){
+    flappyBird.x = flappyBird.x + 1;
+    flappyBird.y = flappyBird.y - 3;
+  }
+  else{
+    flappyBird.x = flappyBird.x - 1;
+    flappyBird.y = flappyBird.y + 3;
+  }
+  count++  
+}
+
+var frameCount = 0;
 function loop() {
+
+  if(frameCount % 16 == 0){
+    idleFlappyBird();
+  }  
+  flappyBird.atualiza();
+
   planoDeFundo.desenha();
   chao.desenha();
-  flappyBird.desenha();
+  flappyBird.desenha();     
+  requestAnimationFrame(loop); // << It makes a loop() function callback
 
-  flappyBird.y = flappyBird.y + 1;
-
-  requestAnimationFrame(loop);
+  frameCount++;
 }
 
 loop();
