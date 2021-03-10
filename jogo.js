@@ -17,7 +17,7 @@ const planoDeFundo = {
   y: canvas.height - 204,
   desenha() {
     contexto.fillStyle = '#2e4482';
-    contexto.fillRect(0,0, canvas.width, canvas.height)
+    contexto.fillRect(0, 0, canvas.width, canvas.height)
 
     contexto.drawImage(
       sprites,
@@ -45,14 +45,14 @@ const chao = {
   altura: 112,
   x: 0,
   y: canvas.height - 112,
-  desenha() {    
+  desenha() {
     contexto.drawImage(
       sprites,
       chao.spriteX, chao.spriteY, // << sprites positions
       chao.largura, chao.altura,
       chao.x, chao.y,
       chao.largura, chao.altura,
-    );    
+    );
 
     contexto.drawImage(
       sprites,
@@ -73,7 +73,7 @@ const flappyBird = {
   y: 50,
   gravidade: 0.08,
   velocidade: 0,
-  atualiza(){
+  atualiza() {
     flappyBird.velocidade = flappyBird.velocidade + flappyBird.gravidade;
     flappyBird.y = flappyBird.y + flappyBird.velocidade;
     console.log(flappyBird.velocidade);
@@ -90,32 +90,93 @@ const flappyBird = {
 }
 
 var count = 0;
-function idleFlappyBird(){
-  if(count % 2){
+function idleFlappyBird() {
+  if (count % 2) {
     flappyBird.x = flappyBird.x + 1;
     flappyBird.y = flappyBird.y - 3;
   }
-  else{
+  else {
     flappyBird.x = flappyBird.x - 1;
     flappyBird.y = flappyBird.y + 3;
   }
-  count++  
+  count++
+}
+
+/// [mensagemGetReady]
+const mensagemGetReady = {
+  sX: 134,
+  sY: 0,
+  w: 174,
+  h: 152,
+  x: (canvas.width / 2) - 174 / 2,
+  y: 50,
+  desenha() {
+    contexto.drawImage(
+      sprites,
+      mensagemGetReady.sX, mensagemGetReady.sY,
+      mensagemGetReady.w, mensagemGetReady.h,
+      mensagemGetReady.x, mensagemGetReady.y,
+      mensagemGetReady.w, mensagemGetReady.h
+    );
+  }
+}
+
+//
+// [Telas]
+//
+let telaAtiva = {}; // << object declared null
+function mudaParaTela(novaTela) {
+  telaAtiva = novaTela; // << Javascript will automaticly guess the type
+}
+
+const Telas = {
+  INICIO: {
+    desenha() {
+      planoDeFundo.desenha();
+      chao.desenha();
+      flappyBird.desenha();
+      mensagemGetReady.desenha();
+    },
+    click(){
+      mudaParaTela(TelasJOGO);
+    },
+    atualiza() {
+
+    }
+  }
+};
+
+TelasJOGO = {
+  desenha() {
+    planoDeFundo.desenha();
+    chao.desenha();
+    flappyBird.desenha();
+  },
+  atualiza() {
+    flappyBird.atualiza();
+  }
 }
 
 var frameCount = 0;
 function loop() {
 
-  if(frameCount % 16 == 0){
+  if (frameCount % 16 == 0) {
     idleFlappyBird();
-  }  
-  flappyBird.atualiza();
+  }
 
-  planoDeFundo.desenha();
-  chao.desenha();
-  flappyBird.desenha();     
+  telaAtiva.atualiza(); // << telaAtiva has received the Telas object
+  telaAtiva.desenha(); 
+  
   requestAnimationFrame(loop); // << It makes a loop() function callback
-
-  frameCount++;
+  
+  frameCount++;  
 }
 
-loop();
+window.addEventListener('click', function() {
+  if(telaAtiva.click){ // << Does it check IF telaAtiva has the function or property click?
+    telaAtiva.click();
+  }
+});
+
+mudaParaTela(Telas.INICIO);
+loop(); // << First loop call
