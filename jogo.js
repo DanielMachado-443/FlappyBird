@@ -137,7 +137,7 @@ const Telas = {
       flappyBird.desenha();
       mensagemGetReady.desenha();
     },
-    click(){
+    click() {
       mudaParaTela(TelasJOGO);
     },
     atualiza() {
@@ -165,16 +165,26 @@ function loop() {
   }
 
   telaAtiva.atualiza(); // << telaAtiva has received the Telas object
-  telaAtiva.desenha(); 
-  
+  telaAtiva.desenha();
+
   requestAnimationFrame(loop); // << It makes a loop() function callback
-  
-  frameCount++;  
+
+  frameCount++;
 }
 
-window.addEventListener('click', function() {
-  if(telaAtiva.click){ // << Does it check IF telaAtiva has the function or property click?
-    telaAtiva.click();
+let mousePos = {}; // << Picking up the mouse position
+window.onmousemove = logMouseMove; // << like a c# delegate?  <<< REVIEW THAT LATTER
+function logMouseMove(e) {  
+	mousePos = { x: e.clientX, y: e.clientY };  	
+}
+
+window.addEventListener('click', function () {
+  if (telaAtiva.click) { // << Does it check IF telaAtiva has the function or property click?
+    if(mousePos.x >= 463 && mousePos.x <= 785
+      && mousePos.y >= 235 && mousePos.y <= 715){
+        telaAtiva.click();       
+        console.log("The mouse x position is: " + mousePos.x + " and y is: " + mousePos.y)    
+      }     
   }
 });
 
