@@ -1,4 +1,5 @@
 
+let frames = 0;
 const som_HIT = new Audio(); // << CREATING A NEW OBJECT OF Audio type
 som_HIT.src = './efeitos/hit.wav';
 
@@ -6,9 +7,8 @@ som_HIT.src = './efeitos/hit.wav';
 const sprites = new Image(); // << look back to it
 sprites.src = './sprites.png';
 
-const canvas = document.querySelector('canvas');
+const canvas = document.querySelector('canvas'); // << Picking up the 'canvas' object
 const contexto = canvas.getContext('2d');
-
 
 // [Plano de Fundo]
 const planoDeFundo = {
@@ -17,7 +17,7 @@ const planoDeFundo = {
   largura: 275,
   altura: 204,
   x: 0,
-  y: canvas.height - 204,
+  y: canvas.height - 204, // << We subtract the 'altura' value from canvas.height
   desenha() {
     contexto.fillStyle = '#2e4482';
     contexto.fillRect(0, 0, canvas.width, canvas.height)
@@ -41,31 +41,45 @@ const planoDeFundo = {
 };
 
 // [Chao]
-const chao = {
-  spriteX: 0,
-  spriteY: 610,
-  largura: 224,
-  altura: 112,
-  x: 0,
-  y: canvas.height - 112,
-  desenha() {
-    contexto.drawImage(
-      sprites,
-      chao.spriteX, chao.spriteY, // << sprites positions
-      chao.largura, chao.altura,
-      chao.x, chao.y,
-      chao.largura, chao.altura,
-    );
+function criaChao() {
+  const chao = {
+    spriteX: 0,
+    spriteY: 610,
+    largura: 224,
+    altura: 112,
+    x: 0,
+    y: canvas.height - 112,
+    atualiza() {
+      const movimentoDoChao = 1;
+      const deveRepetirNaMetade = chao.largura / 2; 
+      const movimentacao = chao.x - movimentoDoChao;
+      chao.x = movimentacao % deveRepetirNaMetade;  // << INTERESTING, once we are incrementing or decremeting a value (chao.x) that receives the remainder
+                                                    // ^^ of a division in which the denomitor is greater than nominator 
+                                                    // ^^ the remainder will never overtake this numerator value!!!
+                                                    // ^^ Since the remainder of a division of one number by ITSELF is 0
+                                                    // ^^ Whenever chao.x gets 0, it will have the 0 value in the next time the atualiza() function is called   
+                                                    // ^^ OBS: the remainder of a division in which the denomitor is greater than nominator will ALWAYS be the NOMINATOR ITSELF!!!                                                
+    },
+    desenha() {
+      contexto.drawImage(
+        sprites,
+        chao.spriteX, chao.spriteY, // << sprites positions
+        chao.largura, chao.altura,
+        chao.x, chao.y,
+        chao.largura, chao.altura,
+      ),
 
-    contexto.drawImage(
-      sprites,
-      chao.spriteX, chao.spriteY,
-      chao.largura, chao.altura,
-      (chao.x + chao.largura), chao.y,
-      chao.largura, chao.altura,
-    );
-  },
-};
+        contexto.drawImage(
+          sprites,
+          chao.spriteX, chao.spriteY,
+          chao.largura, chao.altura,
+          (chao.x + chao.largura), chao.y,
+          chao.largura, chao.altura,
+        );
+    },
+  };
+  return chao;
+}
 
 function fazColisao(flappyBird, chao) {
   const flappyBirdY = flappyBird.y + flappyBird.altura; // << This 'altura' is filled up by the flappyBoard pixels
@@ -97,8 +111,8 @@ function criaFlappyBird() { // << Like a constructor, now we can create a pre de
     velocidade: 0,
 
     atualiza() {
-      if (fazColisao(flappyBird, chao)) {
-        console.log('Fez colisao');
+      if (fazColisao(flappyBird, globais.chao)) {
+        console.log('Fez colisao');        
         som_HIT.play();
 
         setTimeout(() => {
@@ -110,11 +124,41 @@ function criaFlappyBird() { // << Like a constructor, now we can create a pre de
       flappyBird.velocidade = flappyBird.velocidade + flappyBird.gravidade;
       flappyBird.y = flappyBird.y + flappyBird.velocidade;
     },
+
+    // Changing flappyBird wings position implementation BELLOW
+    movimentos: [ // << Array of spriteX and spriteY
+      { spriteX: 0, spriteY: 0, }, // asa pra cima
+      { spriteX: 0, spriteY: 26, }, // asa no meio 
+      { spriteX: 0, spriteY: 52, }, // asa pra baixo
+      { spriteX: 0, spriteY: 26, }, // asa no meio ... It has to be repeated because this is the transition position
+    ],
+
+    frameAtual: 0, // << A separated attribute    
+    atualizaOFrameAtual() {
+      const intervaloDeFrames = 10;
+      const passouOIntervalo = frames % intervaloDeFrames; // << this 'frames' and 'frameAtual' are NOT the same thing
+
+      if(passouOIntervalo == 0) {
+        const baseDoIncremento = 1;
+        const incremento = flappyBird.frameAtual + baseDoIncremento; // << Simple: base value + increment value
+        const totalMovements = flappyBird.movimentos.length; // << Getting the array of positions 'movimentos' size    
+        flappyBird.frameAtual = incremento % totalMovements; // << Updating the frameAtual base value
+      }    
+    },
+    // Changing flappyBird wings position implementation ABOVE
+
     desenha() {
+      flappyBird.atualizaOFrameAtual();
+      const { spriteX, spriteY } = flappyBird.movimentos[flappyBird.frameAtual] // << DIFFERENT SYNTAX... DESESTRUTURAR ... It is const but its value changes... ???      
+
       contexto.drawImage(
         sprites,
-        flappyBird.spriteX, flappyBird.spriteY, // Sprite X, Sprite Y
+
+        // Picking up the image sprite
+        spriteX, spriteY, // Sprite X, Sprite Y
         flappyBird.largura, flappyBird.altura, // Sprite cut size
+        // Picking up the image sprite
+        
         flappyBird.x, flappyBird.y,
         flappyBird.largura, flappyBird.altura,
       );
@@ -124,9 +168,9 @@ function criaFlappyBird() { // << Like a constructor, now we can create a pre de
 }
 
 // MY idle animation OWN implementation // MY idle animation OWN implementation
-var count = 0;
+let count = 0;
 function idleFlappyBird() {
-  if (count % 2) {
+  if (count % 2) { // << Alternating the moviments
     globais.flappyBird.x = globais.flappyBird.x + 1;
     globais.flappyBird.y = globais.flappyBird.y - 3;
   }
@@ -174,10 +218,11 @@ const Telas = {
   INICIO: {
     inicializa() {
       globais.flappyBird = criaFlappyBird(); // << CREATING A globais ATTRIBUTE 'flappyBird' IN RUN TIME
+      globais.chao = criaChao();
     },
     desenha() {
       planoDeFundo.desenha();
-      chao.desenha();
+      globais.chao.desenha();
       globais.flappyBird.desenha();
       mensagemGetReady.desenha();
     },
@@ -185,15 +230,15 @@ const Telas = {
       mudaParaTela(Telas.JOGO);
     },
     atualiza() {
-
+      globais.chao.atualiza();
     }
   }
 };
 
-Telas.JOGO = { // << Is it acting like a Telas property?? Different syntax  // << LOOK BACK TO THIS LATTER!!!  
+Telas.JOGO = { // << Declaring a Telas attribute (JOGO) in runtime, AFTER the Telas main declaration 
   desenha() {
     planoDeFundo.desenha();
-    chao.desenha();
+    globais.chao.desenha();
     globais.flappyBird.desenha();
   },
   click() {
@@ -201,36 +246,24 @@ Telas.JOGO = { // << Is it acting like a Telas property?? Different syntax  // <
   },
   atualiza() {
     globais.flappyBird.atualiza();
+    globais.chao.atualiza();
   }
 }
 
-// MY OWN implementation // MY OWN implementation // MY OWN implementation
-let mousePos = {}; // << Picking up the mouse position
-window.onmousemove = logMouseMove; // << like a c# delegate?  <<< REVIEW THAT LATTER
-function logMouseMove(e) {
-  mousePos = { x: e.clientX, y: e.clientY };
-}
+window.addEventListener('click', function () {
+  if (Telas.INICIO.click) { // << Does it check IF telaAtiva has the function or property click?    
+    Telas.INICIO.click();
+  }
+});
 
 window.addEventListener('click', function () {
   if (Telas.JOGO.click) {
     Telas.JOGO.click();
   }
 });
-// MY OWN implementation // MY OWN implementation // MY OWN implementation
 
-window.addEventListener('click', function () {
-  if (Telas.INICIO.click) { // << Does it check IF telaAtiva has the function or property click?
-    if (mousePos.x >= 463 && mousePos.x <= 785
-      && mousePos.y >= 235 && mousePos.y <= 715) {
-      Telas.INICIO.click();
-      console.log("The mouse x position is: " + mousePos.x + " and y is: " + mousePos.y)
-    }
-  }
-});
-
-var frameCount = 0;
 function loop() {
-  if (frameCount % 16 == 0) {
+  if (frames % 12 == 0) {
     idleFlappyBird();
   }
 
@@ -239,7 +272,7 @@ function loop() {
 
   requestAnimationFrame(loop); // << It makes a loop() function callback
 
-  frameCount++;
+  frames++;
 }
 
 mudaParaTela(Telas.INICIO);
