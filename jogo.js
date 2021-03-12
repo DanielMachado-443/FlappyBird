@@ -1,8 +1,14 @@
 
+
 let frames = 0;
+let isThereAChaoColisionSong = false;
+let createdScore = false;
+
+const globais = {} // << Declared as a null object
+let telaAtiva = {}; // << object declared null
+
 const som_HIT = new Audio(); // << CREATING A NEW OBJECT OF Audio type
 som_HIT.src = './efeitos/hit.wav';
-
 
 const sprites = new Image(); // << look back to it
 sprites.src = './sprites.png';
@@ -68,7 +74,6 @@ function criaChao() {
         chao.x, chao.y,
         chao.largura, chao.altura,
       ),
-
         contexto.drawImage(
           sprites,
           chao.spriteX, chao.spriteY,
@@ -85,10 +90,9 @@ function fazColisaoComOChao(flappyBird, chao) {
   const flappyBirdY = flappyBird.y + flappyBird.altura; // << This 'altura' is filled up by the flappyBoard pixels
   const chaoY = chao.y;
 
-  if (flappyBirdY >= chaoY + 10) { // chao.y has a HIGH y for being at the bottom of the canvas
+  if (flappyBirdY >= chaoY + 10) { // chao.y has a HIGH y for being at the bottom of the canvas    
     return true;
   }
-
   return false;
 }
 
@@ -125,7 +129,7 @@ function criaCanos() {
         // [Cano do Chao]
         const canoChaoX = par.x;
         const canoChaoY = canos.altura + espacamentoEntreCanos + par.y; // << 'canos.altura' makes the canoChao dont overwrite the canoCeu, the 'espacamento' makes it give a space between
-                                                                        // ^^ the both, AND the par.y makes them act like one in terms of y position
+        // ^^ the both, AND the par.y makes them act like one in terms of y position
         contexto.drawImage(
           sprites,
           canos.chao.spriteX, canos.chao.spriteY,
@@ -144,18 +148,18 @@ function criaCanos() {
         }
       })
     },
-    temColisaoComOFlappyBird(par){ // << Beyond cheking if the flappy has crossed the cano x number, we need to check if his head and feet have done the same
+    temColisaoComOFlappyBird(par) { // << Beyond cheking if the flappy has crossed the cano x number, we need to check if his head and feet have done the same
       const cabecaDoFlappy = globais.flappyBird.y; // << flappyBird.y is the point where the head begins to be drawn
       const peDoFlappy = globais.flappyBird.y + globais.flappyBird.altura; // << When we add a value to the y we're getting down in the canvas
 
-      if(globais.flappyBird.x >= par.x){        
-        if(cabecaDoFlappy <= par.canoCeu.y - 5){
+      if (globais.flappyBird.x >= par.x - 10 && globais.flappyBird.x <= par.x + (globais.canos.largura - 5)) {
+        if (cabecaDoFlappy <= par.canoCeu.y - 5) {          
           return true;
         }
-        if(peDoFlappy >= par.canoChao.y + 5){ // << As long as the flappyBird y value increases, we get DOWN and DOWN in the canvas
+        if (peDoFlappy >= par.canoChao.y + 5) { // << As long as the flappyBird y value increases, we get DOWN and DOWN in the canvas          
           return true;
-        }        
-      }      
+        }
+      }
       return false;
     },
     pares: [],
@@ -171,7 +175,7 @@ function criaCanos() {
       canos.pares.forEach(function (par) {
         par.x = par.x - 2; // << IT CREATES A SPACE BETWEEN THE 'canos'!!!
 
-        if(canos.temColisaoComOFlappyBird(par)) {
+        if (canos.temColisaoComOFlappyBird(par)) {
           console.log('Você perdeu!');
           mudaParaTela(Telas.INICIO); // << Reseting the game
         }
@@ -185,37 +189,58 @@ function criaCanos() {
   return canos;
 }
 
+function criaPlacar() {
+  const placar = {
+    pontuacao: 0,
+    desenha() {
+      contexto.font = '35px "VT323"';
+      contexto.textAlign = 'right';
+      contexto.fillStyle = '#f4ae00';
+      contexto.fillText(`Score: ${placar.pontuacao}`, canvas.width - 10, 35); // << Look back to this SYNTAX
+    },
+    atualiza() {
+      const intervaloDeFrames = 10;
+      const passouOIntervalo = frames % intervaloDeFrames === 0; // << this 'frames' and 'frameAtual' are NOT the same thing
+
+      if (passouOIntervalo && !fazColisaoComOChao(globais.flappyBird, globais.chao)) {
+        placar.pontuacao = placar.pontuacao + 1;
+      }
+    }
+  }
+  return placar;
+}
+
 function criaFlappyBird() { // << Like a constructor, now we can create a pre design object as it was a class object
   const flappyBird = { // << IMPORTANT!!! flappyBird is a const, but I still can change its attributes/properties values
     spriteX: 0,
     spriteY: 0,
     largura: 33,
     altura: 24,
-    x: 10,
-    y: 50,
-    pulo: 4.6, // << video was 4.6
-
-    pula() {
-      console.log('Devo pular');
-      flappyBird.velocidade = - flappyBird.pulo;  // << Making the flappyBird receive a negative speed
-    },
-
+    x: 30,
+    y: 120,
+    pulo: 4.6,
     gravidade: 0.25,
     velocidade: 0,
 
+    pula() {
+      flappyBird.velocidade = - flappyBird.pulo;  // << Making the flappyBird receive a negative speed
+    },
+
     atualiza() {
       if (fazColisaoComOChao(flappyBird, globais.chao)) {
-        console.log('Fez colisao');
-        som_HIT.play();
-
+        console.log('Colidiu com o chao');
+        if (!isThereAChaoColisionSong) {
+          som_HIT.play();
+          isThereAChaoColisionSong = true;
+        }
         setTimeout(() => {
           mudaParaTela(Telas.INICIO);
-        }, 500);       // << Is it how similar to sleep?
+        }, 1000);       // << Is it how similar to sleep?
         return;
       }
 
-      flappyBird.velocidade = flappyBird.velocidade + flappyBird.gravidade;
-      flappyBird.y = flappyBird.y + flappyBird.velocidade;
+      flappyBird.velocidade = flappyBird.velocidade + flappyBird.gravidade; // << Gravity effect on the speed
+      flappyBird.y = flappyBird.y + flappyBird.velocidade; // << Speed effect on the flappyBird y position           
     },
 
     // Changing flappyBird wings position implementation BELLOW
@@ -229,13 +254,13 @@ function criaFlappyBird() { // << Like a constructor, now we can create a pre de
     frameAtual: 0, // << A separated attribute    
     atualizaOFrameAtual() {
       const intervaloDeFrames = 10;
-      const passouOIntervalo = frames % intervaloDeFrames; // << this 'frames' and 'frameAtual' are NOT the same thing
+      const passouOIntervalo = frames % intervaloDeFrames === 0; // << this 'frames' and 'frameAtual' are NOT the same thing
 
-      if (passouOIntervalo == 0) {
+      if (passouOIntervalo) {
         const baseDoIncremento = 1;
         const incremento = flappyBird.frameAtual + baseDoIncremento; // << Simple: base value + increment value
         const totalMovements = flappyBird.movimentos.length; // << Getting the array of positions 'movimentos' size    
-        flappyBird.frameAtual = incremento % totalMovements; // << Updating the frameAtual base value
+        flappyBird.frameAtual = incremento % totalMovements; // << Making the frameAtual get to 0 again (when the remainder of incremento div by totalM is 0) by updating it
       }
     },
     // Changing flappyBird wings position implementation ABOVE
@@ -297,8 +322,6 @@ const mensagemGetReady = {
 //
 // [Telas]
 //
-const globais = {} // << Declared as a null object
-let telaAtiva = {}; // << object declared null
 function mudaParaTela(novaTela) {
   telaAtiva = novaTela; // << Javascript will automaticly guess the type
 
@@ -310,32 +333,38 @@ function mudaParaTela(novaTela) {
 const Telas = {
   INICIO: {
     inicializa() {
+      isThereAChaoColisionSong = false;
       globais.flappyBird = criaFlappyBird(); // << CREATING A globais ATTRIBUTE 'flappyBird' IN RUN TIME
       globais.chao = criaChao();
       globais.canos = criaCanos();
     },
     desenha() {
-      planoDeFundo.desenha(); // << WONDERFUL -> CHANGING THE 'desenha' METHOD CALL ORDER MAKE A PICTURE FROM THE SPRITE OVERRIDE ANOTHER
-      globais.canos.desenha();
+      planoDeFundo.desenha(); // << WONDERFUL -> CHANGING THE 'desenha' METHOD CALL ORDER MAKE A PICTURE FROM THE SPRITE OVERRIDE ANOTHER      
       globais.chao.desenha();
-      globais.flappyBird.desenha(); // << flappyBird maximum drawing priority
+
       mensagemGetReady.desenha();
+      globais.flappyBird.desenha(); // << flappyBird maximum drawing priority
     },
     click() {
       mudaParaTela(Telas.JOGO);
     },
     atualiza() {
       globais.chao.atualiza(); // << Its necessary to update the chao, because its moving      
-    }
+    },
   }
 };
 
-Telas.JOGO = { // << Declaring a Telas attribute (JOGO) in runtime, AFTER the Telas main declaration 
+Telas.JOGO = { // << Declaring a Telas attribute (JOGO) in runtime, AFTER the Telas main declaration
+  inicializa() {
+    globais.placar = criaPlacar();
+    globais.flappyBird.pula();
+  },
   desenha() {
     planoDeFundo.desenha(); // << WONDERFUL -> CHANGING THE 'desenha' METHOD CALL ORDER MAKE A PICTURE FROM THE SPRITE OVERRIDE ANOTHER
     globais.canos.desenha();
     globais.chao.desenha();
     globais.flappyBird.desenha(); // << flappyBird maximum drawing priority
+    globais.placar.desenha();
   },
   click() {
     globais.flappyBird.pula();
@@ -344,18 +373,13 @@ Telas.JOGO = { // << Declaring a Telas attribute (JOGO) in runtime, AFTER the Te
     globais.canos.atualiza();
     globais.chao.atualiza();
     globais.flappyBird.atualiza();
-  }
+    globais.placar.atualiza();
+  },
 }
 
 window.addEventListener('click', function () {
-  if (Telas.INICIO.click) { // << Does it check IF telaAtiva has the function or property click?    
-    Telas.INICIO.click();
-  }
-});
-
-window.addEventListener('click', function () {
-  if (Telas.JOGO.click) {
-    Telas.JOGO.click();
+  if (telaAtiva.click) { // << Does it check IF telaAtiva has the function or property click?    
+    telaAtiva.click();
   }
 });
 
@@ -364,8 +388,8 @@ function loop() {
     idleFlappyBird();
   }
 
-  telaAtiva.atualiza(); // << telaAtiva has received the Telas object
   telaAtiva.desenha();
+  telaAtiva.atualiza(); // << telaAtiva has received the Telas object
 
   requestAnimationFrame(loop); // << It makes a loop() function callback
 
