@@ -1,20 +1,33 @@
 
-
 let frames = 0;
 let isThereAChaoColisionSong = false;
 let createdScore = false;
+let whichTela = 0;
+let gameScore = 0;
+let gameOver = false;
 
 const globais = {} // << Declared as a null object
 let telaAtiva = {}; // << object declared null
 
 const som_HIT = new Audio(); // << CREATING A NEW OBJECT OF Audio type
-som_HIT.src = './efeitos/hit.wav';
+som_HIT.src = './efeitos/hit (mp3cut.net)2.wav';
+
+const som_PULO = new Audio(); // << CREATING A NEW OBJECT OF Audio type
+som_PULO.src = './efeitos/pulo (mp3cut.net).wav';
+
+const som_GameOver = new Audio(); // << CREATING A NEW OBJECT OF Audio type
+som_GameOver.src = './efeitos/mixkit-retro-arcade-game-over-470.wav';
+
+const som_GameLevel = new Audio(); // << CREATING A NEW OBJECT OF Audio type
+som_GameLevel.src = './efeitos/mixkit-game-level-music-689 (mp3cut.net).wav';
+som_GameLevel.loop = true;
 
 const sprites = new Image(); // << look back to it
 sprites.src = './sprites.png';
 
 const canvas = document.querySelector('canvas'); // << Picking up the 'canvas' object
 const contexto = canvas.getContext('2d');
+
 
 // [Plano de Fundo]
 const planoDeFundo = {
@@ -96,6 +109,13 @@ function fazColisaoComOChao(flappyBird, chao) {
   return false;
 }
 
+function fazColisaoComOTetoOuPoderaFazer(flappyBird) {
+  if (flappyBird.y <= 0 + flappyBird.altura) { // chao.y has a HIGH y for being at the bottom of the canvas    
+    return true;
+  }
+  return false;
+}
+
 function criaCanos() {
   const canos = {
     largura: 52,
@@ -152,11 +172,11 @@ function criaCanos() {
       const cabecaDoFlappy = globais.flappyBird.y; // << flappyBird.y is the point where the head begins to be drawn
       const peDoFlappy = globais.flappyBird.y + globais.flappyBird.altura; // << When we add a value to the y we're getting down in the canvas
 
-      if (globais.flappyBird.x >= par.x - 10 && globais.flappyBird.x <= par.x + (globais.canos.largura - 5)) {
-        if (cabecaDoFlappy <= par.canoCeu.y - 5) {          
+      if (globais.flappyBird.x >= (par.x - globais.flappyBird.largura) + 8 && globais.flappyBird.x <= par.x + (globais.canos.largura - 5)) { // << I've made reversed way and it works
+        if (cabecaDoFlappy <= par.canoCeu.y - 5) {
           return true;
         }
-        if (peDoFlappy >= par.canoChao.y + 5) { // << As long as the flappyBird y value increases, we get DOWN and DOWN in the canvas          
+        if (peDoFlappy >= par.canoChao.y + 5) { // << As long as the flappyBird y value increases, we get DOWN and DOWN in the canvas                 
           return true;
         }
       }
@@ -177,7 +197,15 @@ function criaCanos() {
 
         if (canos.temColisaoComOFlappyBird(par)) {
           console.log('Você perdeu!');
-          mudaParaTela(Telas.INICIO); // << Reseting the game
+          gameOver = true; // << Not used yet
+          som_GameLevel.pause();
+          som_HIT.play();
+
+          gameScore = globais.placar.pontuacao;
+          mudaParaTela(Telas.GAME_OVER); // << Reseting the game
+          setTimeout(() => {
+            som_GameOver.play();
+          }, 250);
         }
         // << DELETING THE GONE 'canos' BELLOW
         if (par.x <= 0 - canos.largura) { // << I'VE MADE IT DIFFERENT, BUT IT WORKS AND I PREFFER THIS WAY
@@ -187,27 +215,6 @@ function criaCanos() {
     }
   }
   return canos;
-}
-
-function criaPlacar() {
-  const placar = {
-    pontuacao: 0,
-    desenha() {
-      contexto.font = '35px "VT323"';
-      contexto.textAlign = 'right';
-      contexto.fillStyle = '#f4ae00';
-      contexto.fillText(`Score: ${placar.pontuacao}`, canvas.width - 10, 35); // << Look back to this SYNTAX
-    },
-    atualiza() {
-      const intervaloDeFrames = 10;
-      const passouOIntervalo = frames % intervaloDeFrames === 0; // << this 'frames' and 'frameAtual' are NOT the same thing
-
-      if (passouOIntervalo && !fazColisaoComOChao(globais.flappyBird, globais.chao)) {
-        placar.pontuacao = placar.pontuacao + 1;
-      }
-    }
-  }
-  return placar;
 }
 
 function criaFlappyBird() { // << Like a constructor, now we can create a pre design object as it was a class object
@@ -223,19 +230,28 @@ function criaFlappyBird() { // << Like a constructor, now we can create a pre de
     velocidade: 0,
 
     pula() {
-      flappyBird.velocidade = - flappyBird.pulo;  // << Making the flappyBird receive a negative speed
+      if (!fazColisaoComOTetoOuPoderaFazer(this)) {
+        som_PULO.play();
+        flappyBird.velocidade = - flappyBird.pulo;  // << Making the flappyBird receive a negative speed          
+      }
     },
 
     atualiza() {
       if (fazColisaoComOChao(flappyBird, globais.chao)) {
         console.log('Colidiu com o chao');
         if (!isThereAChaoColisionSong) {
+          gameOver = true;
+          som_GameLevel.pause();
           som_HIT.play();
           isThereAChaoColisionSong = true;
         }
         setTimeout(() => {
-          mudaParaTela(Telas.INICIO);
-        }, 1000);       // << Is it how similar to sleep?
+          gameScore = globais.placar.pontuacao;
+          mudaParaTela(Telas.GAME_OVER);
+        }, 200);       // << Is it how similar to sleep?
+        setTimeout(() => {
+          som_GameOver.play();
+        }, 250);
         return;
       }
 
@@ -285,6 +301,27 @@ function criaFlappyBird() { // << Like a constructor, now we can create a pre de
   return flappyBird;
 }
 
+function criaPlacar() {
+  const placar = {
+    pontuacao: 0,
+    desenha() {
+      contexto.font = '35px "VT323"';
+      contexto.textAlign = 'right';
+      contexto.fillStyle = '#f4ae00';
+      contexto.fillText(`Score: ${placar.pontuacao}`, canvas.width - 10, 35); // << Look back to this SYNTAX
+    },
+    atualiza() {
+      const intervaloDeFrames = 10;
+      const passouOIntervalo = frames % intervaloDeFrames === 0; // << this 'frames' and 'frameAtual' are NOT the same thing ... WHY DOES CONST WORK HERE?
+
+      if (passouOIntervalo && !fazColisaoComOChao(globais.flappyBird, globais.chao)) {
+        placar.pontuacao = placar.pontuacao + 1;
+      }
+    }
+  }
+  return placar;
+}
+
 // MY idle animation OWN implementation // MY idle animation OWN implementation
 let count = 0;
 function idleFlappyBird() {
@@ -306,7 +343,7 @@ const mensagemGetReady = {
   sY: 0,
   w: 174,
   h: 152,
-  x: (canvas.width / 2) - 174 / 2,
+  x: (canvas.width / 2) - 174 / 2, // << Puting the painel on the canvas's center
   y: 50,
   desenha() {
     contexto.drawImage(
@@ -316,6 +353,31 @@ const mensagemGetReady = {
       mensagemGetReady.x, mensagemGetReady.y,
       mensagemGetReady.w, mensagemGetReady.h
     );
+  }
+}
+
+/// [GAME_OVER]
+const mensagemGameOver = {
+  sX: 134,
+  sY: 153,
+  w: 226,
+  h: 200,
+  x: (canvas.width / 2) - 226 / 2, // << Puting the painel on the canvas's center
+  y: (canvas.height / 2) - (200 / 2), // << IMPORTANT!!! 'canvas.height / 2' will give us the y center position, as the '200 / 2' will give picture center
+  desenha() {
+    contexto.drawImage(
+      sprites,
+      mensagemGameOver.sX, mensagemGameOver.sY,
+      mensagemGameOver.w, mensagemGameOver.h,
+      mensagemGameOver.x, mensagemGameOver.y,
+      mensagemGameOver.w, mensagemGameOver.h,
+    )
+  },
+  atualiza() {
+    contexto.font = '28px "VT323"',
+      contexto.textAlign = 'center',
+      contexto.fillStyle = '#f4ae00',
+      contexto.fillText(gameScore, canvas.width - 90, 236) // << Look back to this SYNTAX
   }
 }
 
@@ -333,6 +395,9 @@ function mudaParaTela(novaTela) {
 const Telas = {
   INICIO: {
     inicializa() {
+      whichTela = 0,
+        gameScore = 0;
+      gameOver = false;
       isThereAChaoColisionSong = false;
       globais.flappyBird = criaFlappyBird(); // << CREATING A globais ATTRIBUTE 'flappyBird' IN RUN TIME
       globais.chao = criaChao();
@@ -354,8 +419,10 @@ const Telas = {
   }
 };
 
-Telas.JOGO = { // << Declaring a Telas attribute (JOGO) in runtime, AFTER the Telas main declaration
+Telas.JOGO = { // << Declaring a Telas attribute (JOGO) in runtime, AFTER the Telas main declaration  
   inicializa() {
+    whichTela = 1,
+      som_GameLevel.play();
     globais.placar = criaPlacar();
     globais.flappyBird.pula();
   },
@@ -367,7 +434,7 @@ Telas.JOGO = { // << Declaring a Telas attribute (JOGO) in runtime, AFTER the Te
     globais.placar.desenha();
   },
   click() {
-    globais.flappyBird.pula();
+    globais.flappyBird.pula(); // << 'pula' method returns the final time                       
   },
   atualiza() {
     globais.canos.atualiza();
@@ -375,25 +442,45 @@ Telas.JOGO = { // << Declaring a Telas attribute (JOGO) in runtime, AFTER the Te
     globais.flappyBird.atualiza();
     globais.placar.atualiza();
   },
-}
+};
+
+Telas.GAME_OVER = {
+  desenha() {
+    whichTela = 2,
+    planoDeFundo.desenha(); // << WONDERFUL -> CHANGING THE 'desenha' METHOD CALL ORDER MAKE A PICTURE FROM THE SPRITE OVERRIDE ANOTHER
+    globais.canos.desenha();
+    globais.chao.desenha();
+    globais.flappyBird.desenha(); // << flappyBird maximum drawing priority     
+    mensagemGameOver.desenha();
+  },
+  atualiza() {
+    mensagemGameOver.atualiza();
+  },
+  click() {
+    whichTela = 0;
+    mudaParaTela(Telas.INICIO);
+  }
+};
 
 window.addEventListener('click', function () {
-  if (telaAtiva.click) { // << Does it check IF telaAtiva has the function or property click?    
+  if (telaAtiva.click) { // << Does it check IF telaAtiva has the function or property click?          
     telaAtiva.click();
   }
 });
 
 function loop() {
-  if (frames % 12 == 0) {
-    idleFlappyBird();
-  }
 
   telaAtiva.desenha();
   telaAtiva.atualiza(); // << telaAtiva has received the Telas object
 
-  requestAnimationFrame(loop); // << It makes a loop() function callback
+  if (whichTela < 2) { // << I needed to do so because the 'Telas.GAMES_OVER' does not initiate the flappyBird with the criaFlappyBird() method
+    if (frames % 12 == 0) {
+      idleFlappyBird();
+    }
+  }
 
   frames++;
+  requestAnimationFrame(loop); // << It makes a loop() function callback  
 }
 
 mudaParaTela(Telas.INICIO);
